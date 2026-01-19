@@ -3,10 +3,14 @@ require('dotenv').config();
 const express = require('express');
 
 const app = express();
+const PORT = process.env.PORT;
+
 const db = require('./configs/db');
+const userRoutes = require('./routes/userRoute');
+
 app.use(express.json());
 
-const PORT = process.env.PORT;
+app.use('/users', userRoutes);
 
 app.get('/', (req, res) => {
     res.send('Welcome to Midnight Garage Pro Backend!');
