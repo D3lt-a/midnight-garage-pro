@@ -8,10 +8,11 @@ async function create(name, email, hashed_key) {
     try {
         const values = [name, email, hashed_key]
         const result = await db.execute(query, values)
+        console.log(result) 
         return {
-            userID: result.insertID,
-            username,
-            useremail
+            userID: result.insertId,
+            name,
+            email
         }
     } catch (error) {
         console.error('Failure to create the user', error)
@@ -21,7 +22,7 @@ async function create(name, email, hashed_key) {
 async function login(email, hashed_key) { 
     const query = `
         SELECT * FROM users 
-        WHERE userEmail = ? AND userPassword = ?
+        WHERE userEmail = ? AND userKey = ?
     `
     const values = [email, hashed_key]
 
