@@ -23,6 +23,7 @@ async function listServices(req, res) {
         res.status(200).json({
             success: true,
             message: 'Successfully retrieved services',
+            data: services[0]
         });
     } catch (error) {
         res.status(500).json({

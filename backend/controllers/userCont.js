@@ -22,18 +22,40 @@ const createUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
-    let hashed_key = bcrypt.compare(password, 8);
     try {
-        const user = await login(email, hashed_key);
+        const { findByEmail } = require('../models/userModel');
+        const user = await findByEmail(email);
+        
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password',
+            });
+        }
+        
+        const isMatch = await bcrypt.compare(password, user.userKey);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid email or password',
+            });
+        }
+        
         res.status(200).json({
             success: true,
-            message: 'User logged in successfully'
+            message: 'User logged in successfully',
+            data: {
+                userID: user.userID,
+                userName: user.userName,
+                userEmail: user.userEmail
+            }
         });
     } catch (error) {
         console.error('Error logging in user:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to login user',
+            error: error.message
         });
     }
 }

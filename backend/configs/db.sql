@@ -6,7 +6,7 @@ create table users(
 	userID int primary key auto_increment not null,
     userName varchar(25) not null,
     userEmail varchar(30) not null unique,
-    userKey varchar(50) not null
+    userKey varchar(255) not null
 );
 
 create table cars(

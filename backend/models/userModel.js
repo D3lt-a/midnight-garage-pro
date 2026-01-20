@@ -19,6 +19,20 @@ async function create(name, email, hashed_key) {
     }
 }
 
+async function findByEmail(email) { 
+    const query = `
+        SELECT * FROM users 
+        WHERE userEmail = ?
+    `
+    try {
+        const [rows] = await db.execute(query, [email])
+        return rows[0] || null
+    } catch (error) {
+        console.error('Failure to find user', error)
+        throw error
+    }
+}
+
 async function login(email, hashed_key) { 
     const query = `
         SELECT * FROM users 
@@ -34,4 +48,4 @@ async function login(email, hashed_key) {
     }
 }
 
-module.exports = { create, login }
+module.exports = { create, login, findByEmail }
