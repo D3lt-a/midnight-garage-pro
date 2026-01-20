@@ -24,9 +24,8 @@ async function listCars(req, res){
         res.status(200).json({
             success: true,
             message: 'Successfully retrieved cars',
-            data: rows
+            data: rows[0]
         });
-        return cars
     } catch (error) {
         res.status(500).json({
             success: false,
