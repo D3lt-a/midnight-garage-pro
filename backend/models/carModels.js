@@ -19,8 +19,8 @@ async function getCars() {
         SELECT * FROM cars
     `;
     try {
-        const result = await db.execute(query);
-        return result;
+        const results = await db.execute(query);
+        return results;
     } catch (error) {
         console.log('Failure to get cars', error);
     }

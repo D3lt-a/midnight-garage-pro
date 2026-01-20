@@ -13,22 +13,25 @@ async function createCar(req, res){
         res.status(500).json({
             success: false,
             message: 'Failed to add car',
+            error: error.message,
         });
     }
 }
 
 async function listCars(req, res){
     try {
-        const [cars] = await getCars();
+        const rows = await getCars();
         res.status(200).json({
             success: true,
-            data: cars,
+            message: 'Successfully retrieved cars',
+            data: rows
         });
-        return rows
+        return cars
     } catch (error) {
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve cars',
+            error: error.message,
         });
     }
 }
@@ -51,6 +54,7 @@ async function listCarbyPlate(req, res){
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve car',
+            error: error.message
         });
     }
 }
