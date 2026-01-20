@@ -1,11 +1,11 @@
-import { Car, Wrench, ClipboardList, CreditCard, TrendingUp } from "lucide-react";
+import { Car, Wrench, ClipboardList, CreditCard, TrendingUp, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useData } from "@/contexts/DataContext";
 import { format } from "date-fns";
 
 const Dashboard = () => {
-  const { cars, services, serviceRecords, payments, getCarById, getServiceById } = useData();
+  const { cars, services, serviceRecords, payments, getCarById, getServiceById, loading } = useData();
 
   const totalRevenue = payments.reduce((sum, p) => sum + p.amountPaid, 0);
   const recentRecords = serviceRecords.slice(-5).reverse();
@@ -13,28 +13,28 @@ const Dashboard = () => {
   const stats = [
     {
       title: "Total Cars",
-      value: cars.length,
+      value: loading ? "..." : cars.length,
       icon: Car,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       title: "Services Available",
-      value: services.length,
+      value: loading ? "..." : services.length,
       icon: Wrench,
       color: "text-accent",
       bgColor: "bg-accent/10",
     },
     {
       title: "Service Records",
-      value: serviceRecords.length,
+      value: loading ? "..." : serviceRecords.length,
       icon: ClipboardList,
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
     {
       title: "Total Revenue",
-      value: `${totalRevenue.toLocaleString()} RWF`,
+      value: loading ? "..." : `${totalRevenue.toLocaleString()} RWF`,
       icon: CreditCard,
       color: "text-success",
       bgColor: "bg-success/10",
@@ -83,7 +83,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentRecords.length > 0 ? (
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : recentRecords.length > 0 ? (
                   recentRecords.map((record) => {
                     const car = getCarById(record.carId);
                     const service = getServiceById(record.serviceId);
@@ -129,30 +133,40 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {payments.slice(-5).reverse().map((payment) => {
-                  const record = serviceRecords.find(
-                    (r) => r.id === payment.serviceRecordId
-                  );
-                  const car = record ? getCarById(record.carId) : null;
-                  return (
-                    <div
-                      key={payment.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
-                    >
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {car?.plateNumber || "Unknown Car"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(payment.paymentDate), "MMM dd, yyyy")}
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : payments.length > 0 ? (
+                  payments.slice(-5).reverse().map((payment) => {
+                    const record = serviceRecords.find(
+                      (r) => r.id === payment.serviceRecordId
+                    );
+                    const car = record ? getCarById(record.carId) : null;
+                    return (
+                      <div
+                        key={payment.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                      >
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {car?.plateNumber || "Unknown Car"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(payment.paymentDate), "MMM dd, yyyy")}
+                          </p>
+                        </div>
+                        <p className="text-success font-semibold">
+                          +{payment.amountPaid.toLocaleString()} RWF
                         </p>
                       </div>
-                      <p className="text-success font-semibold">
-                        +{payment.amountPaid.toLocaleString()} RWF
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">
+                    No recent payments
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

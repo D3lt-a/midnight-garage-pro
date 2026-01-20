@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CreditCard, Plus } from "lucide-react";
+import { CreditCard, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useData } from "@/contexts/DataContext";
-import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const Payments = () => {
@@ -32,39 +31,35 @@ const Payments = () => {
     getCarById,
     getServiceById,
     getServiceRecordById,
+    loading,
   } = useData();
-  const { toast } = useToast();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     serviceRecordId: "",
     amountPaid: "",
     paymentDate: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formData.serviceRecordId || !formData.amountPaid || !formData.paymentDate) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
       return;
     }
 
-    addPayment({
+    setIsSubmitting(true);
+    const success = await addPayment({
       serviceRecordId: formData.serviceRecordId,
       amountPaid: parseFloat(formData.amountPaid),
       paymentDate: new Date(formData.paymentDate),
     });
 
-    toast({
-      title: "Success",
-      description: "Payment recorded successfully",
-    });
-
-    setFormData({ serviceRecordId: "", amountPaid: "", paymentDate: "" });
+    if (success) {
+      setFormData({ serviceRecordId: "", amountPaid: "", paymentDate: "" });
+    }
+    setIsSubmitting(false);
   };
 
   // Auto-fill amount when service record is selected
@@ -172,9 +167,14 @@ const Payments = () => {
                 <Button
                   type="submit"
                   className="w-full gradient-primary text-primary-foreground"
+                  disabled={isSubmitting}
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Record Payment
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  {isSubmitting ? "Recording..." : "Record Payment"}
                 </Button>
               </form>
             </CardContent>
@@ -201,32 +201,46 @@ const Payments = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((payment) => {
-                      const record = getServiceRecordById(payment.serviceRecordId);
-                      const car = record ? getCarById(record.carId) : null;
-                      const service = record
-                        ? getServiceById(record.serviceId)
-                        : null;
-                      return (
-                        <TableRow
-                          key={payment.id}
-                          className="border-border hover:bg-secondary/30"
-                        >
-                          <TableCell className="font-medium text-foreground">
-                            {car?.plateNumber || "Unknown"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {service?.name || "Unknown"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(payment.paymentDate), "MMM dd, yyyy")}
-                          </TableCell>
-                          <TableCell className="text-right text-success font-semibold">
-                            {payment.amountPaid.toLocaleString()} RWF
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : payments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                          No payments recorded yet
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      payments.map((payment) => {
+                        const record = getServiceRecordById(payment.serviceRecordId);
+                        const car = record ? getCarById(record.carId) : null;
+                        const service = record
+                          ? getServiceById(record.serviceId)
+                          : null;
+                        return (
+                          <TableRow
+                            key={payment.id}
+                            className="border-border hover:bg-secondary/30"
+                          >
+                            <TableCell className="font-medium text-foreground">
+                              {car?.plateNumber || "Unknown"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {service?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(payment.paymentDate), "MMM dd, yyyy")}
+                            </TableCell>
+                            <TableCell className="text-right text-success font-semibold">
+                              {payment.amountPaid.toLocaleString()} RWF
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </div>
