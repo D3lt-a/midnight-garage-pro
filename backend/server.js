@@ -9,11 +9,13 @@ const db = require('./configs/db');
 
 const userRoutes = require('./routes/userRoute');
 const carRoutes = require('./routes/carRoutes');
+const servRoutes = require('./routes/servRoutes');
 
 app.use(express.json());
 
 app.use('/users', userRoutes);
 app.use('/cars', carRoutes);
+app.use('/services', servRoutes);
 
 app.get('/', (req, res) => {
     res.send('Welcome to Midnight Garage Pro Backend!');
