@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car, Plus } from "lucide-react";
+import { Car, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,14 +21,13 @@ import {
 } from "@/components/ui/select";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useData } from "@/contexts/DataContext";
-import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const carTypes = ["Sedan", "SUV", "Pickup", "Hatchback", "Van", "Truck", "Coupe"];
 
 const Cars = () => {
-  const { cars, addCar } = useData();
-  const { toast } = useToast();
+  const { cars, addCar, loading } = useData();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     plateNumber: "",
     type: "",
@@ -38,19 +37,16 @@ const Cars = () => {
     mechanicName: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formData.plateNumber || !formData.type || !formData.model) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
       return;
     }
 
-    addCar({
+    setIsSubmitting(true);
+    const success = await addCar({
       plateNumber: formData.plateNumber,
       type: formData.type,
       model: formData.model,
@@ -59,19 +55,17 @@ const Cars = () => {
       mechanicName: formData.mechanicName,
     });
 
-    toast({
-      title: "Success",
-      description: "Car registered successfully",
-    });
-
-    setFormData({
-      plateNumber: "",
-      type: "",
-      model: "",
-      manufacturingYear: "",
-      driverPhone: "",
-      mechanicName: "",
-    });
+    if (success) {
+      setFormData({
+        plateNumber: "",
+        type: "",
+        model: "",
+        manufacturingYear: "",
+        driverPhone: "",
+        mechanicName: "",
+      });
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -183,9 +177,14 @@ const Cars = () => {
                 <Button
                   type="submit"
                   className="w-full gradient-primary text-primary-foreground"
+                  disabled={isSubmitting}
                 >
-                  <Car className="h-4 w-4 mr-2" />
-                  Register Car
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Car className="h-4 w-4 mr-2" />
+                  )}
+                  {isSubmitting ? "Registering..." : "Register Car"}
                 </Button>
               </form>
             </CardContent>
@@ -210,31 +209,45 @@ const Cars = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cars.map((car) => (
-                      <TableRow
-                        key={car.id}
-                        className="border-border hover:bg-secondary/30"
-                      >
-                        <TableCell className="font-medium text-foreground">
-                          {car.plateNumber}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {car.type}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {car.model}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {car.manufacturingYear}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {car.driverPhone}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {car.mechanicName}
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : cars.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No cars registered yet
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      cars.map((car) => (
+                        <TableRow
+                          key={car.id}
+                          className="border-border hover:bg-secondary/30"
+                        >
+                          <TableCell className="font-medium text-foreground">
+                            {car.plateNumber}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {car.type}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {car.model}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {car.manufacturingYear}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {car.driverPhone}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {car.mechanicName}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

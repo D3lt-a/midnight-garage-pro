@@ -1,27 +1,60 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wrench, Eye, EyeOff } from "lucide-react";
+import { Wrench, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { userService } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Mock authentication
-    if (username && password) {
-      navigate("/dashboard");
-    } else {
-      setError("Please enter both username and password");
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await userService.login(email, password);
+      if (response.success) {
+        toast({
+          title: "Welcome!",
+          description: "Login successful",
+        });
+        // Store user info if needed
+        if (response.data) {
+          localStorage.setItem("user", JSON.stringify(response.data));
+        }
+        navigate("/dashboard");
+      } else {
+        setError(response.message || "Login failed");
+      }
+    } catch (err: any) {
+      // For demo purposes, allow login even if backend is not available
+      if (err.code === "ERR_NETWORK") {
+        toast({
+          title: "Demo Mode",
+          description: "Backend not connected. Proceeding with demo access.",
+        });
+        navigate("/dashboard");
+      } else {
+        setError(err.response?.data?.message || "Login failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,16 +77,17 @@ const Login = () => {
         <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground">
-                Username
+              <Label htmlFor="email" className="text-foreground">
+                Email
               </Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="bg-secondary border-border focus:ring-primary"
+                disabled={isLoading}
               />
             </div>
 
@@ -69,6 +103,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-secondary border-border focus:ring-primary pr-10"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -91,12 +126,20 @@ const Login = () => {
             <Button
               type="submit"
               className="w-full gradient-primary text-primary-foreground font-semibold h-11 hover:opacity-90 transition-opacity"
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
             <p className="text-center text-xs text-muted-foreground mt-4">
-              Demo: Enter any username and password to continue
+              Demo: Enter any email and password, or start your backend server
             </p>
           </form>
         </CardContent>

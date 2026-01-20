@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Wrench, Plus } from "lucide-react";
+import { Wrench, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,39 +14,33 @@ import {
 } from "@/components/ui/table";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useData } from "@/contexts/DataContext";
-import { useToast } from "@/hooks/use-toast";
 
 const Services = () => {
-  const { services, addService } = useData();
-  const { toast } = useToast();
+  const { services, addService, loading } = useData();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     price: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formData.name || !formData.price) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
       return;
     }
 
-    addService({
+    setIsSubmitting(true);
+    const success = await addService({
       name: formData.name,
       price: parseFloat(formData.price),
     });
 
-    toast({
-      title: "Success",
-      description: "Service added successfully",
-    });
-
-    setFormData({ name: "", price: "" });
+    if (success) {
+      setFormData({ name: "", price: "" });
+    }
+    setIsSubmitting(false);
   };
 
   return (
@@ -98,9 +92,14 @@ const Services = () => {
                 <Button
                   type="submit"
                   className="w-full gradient-primary text-primary-foreground"
+                  disabled={isSubmitting}
                 >
-                  <Wrench className="h-4 w-4 mr-2" />
-                  Add Service
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Wrench className="h-4 w-4 mr-2" />
+                  )}
+                  {isSubmitting ? "Adding..." : "Add Service"}
                 </Button>
               </form>
             </CardContent>
@@ -124,22 +123,36 @@ const Services = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {services.map((service) => (
-                      <TableRow
-                        key={service.id}
-                        className="border-border hover:bg-secondary/30"
-                      >
-                        <TableCell className="font-mono text-primary">
-                          {service.code}
-                        </TableCell>
-                        <TableCell className="font-medium text-foreground">
-                          {service.name}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {service.price.toLocaleString()}
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : services.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                          No services added yet
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      services.map((service) => (
+                        <TableRow
+                          key={service.id}
+                          className="border-border hover:bg-secondary/30"
+                        >
+                          <TableCell className="font-mono text-primary">
+                            {service.code}
+                          </TableCell>
+                          <TableCell className="font-medium text-foreground">
+                            {service.name}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                            {service.price.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

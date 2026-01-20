@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, Plus, Pencil, Trash2, X } from "lucide-react";
+import { ClipboardList, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useData } from "@/contexts/DataContext";
-import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 
@@ -51,9 +50,10 @@ const ServiceRecords = () => {
     deleteServiceRecord,
     getCarById,
     getServiceById,
+    loading,
   } = useData();
-  const { toast } = useToast();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     carId: "",
     serviceId: "",
@@ -69,31 +69,27 @@ const ServiceRecords = () => {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!formData.carId || !formData.serviceId || !formData.serviceDate) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
       return;
     }
 
-    addServiceRecord({
+    setIsSubmitting(true);
+    const success = await addServiceRecord({
       carId: formData.carId,
       serviceId: formData.serviceId,
       serviceDate: new Date(formData.serviceDate),
     });
 
-    toast({
-      title: "Success",
-      description: "Service record added successfully",
-    });
-
-    setFormData({ carId: "", serviceId: "", serviceDate: "" });
+    if (success) {
+      setFormData({ carId: "", serviceId: "", serviceDate: "" });
+    }
+    setIsSubmitting(false);
   };
 
   const handleEdit = (recordId: string) => {
@@ -108,21 +104,20 @@ const ServiceRecords = () => {
     }
   };
 
-  const handleEditSubmit = () => {
-    if (!editingRecord) return;
+  const handleEditSubmit = async () => {
+    if (!editingRecord || isSubmitting) return;
 
-    updateServiceRecord(editingRecord, {
+    setIsSubmitting(true);
+    const success = await updateServiceRecord(editingRecord, {
       carId: editFormData.carId,
       serviceId: editFormData.serviceId,
       serviceDate: new Date(editFormData.serviceDate),
     });
 
-    toast({
-      title: "Success",
-      description: "Service record updated successfully",
-    });
-
-    setEditingRecord(null);
+    if (success) {
+      setEditingRecord(null);
+    }
+    setIsSubmitting(false);
   };
 
   const handleDeleteClick = (recordId: string) => {
@@ -130,16 +125,14 @@ const ServiceRecords = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    if (recordToDelete) {
-      deleteServiceRecord(recordToDelete);
-      toast({
-        title: "Deleted",
-        description: "Service record deleted successfully",
-      });
-    }
+  const handleDeleteConfirm = async () => {
+    if (!recordToDelete || isDeleting) return;
+    
+    setIsDeleting(true);
+    await deleteServiceRecord(recordToDelete);
     setDeleteDialogOpen(false);
     setRecordToDelete(null);
+    setIsDeleting(false);
   };
 
   return (
@@ -221,9 +214,14 @@ const ServiceRecords = () => {
                 <Button
                   type="submit"
                   className="w-full gradient-primary text-primary-foreground"
+                  disabled={isSubmitting}
                 >
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Add Record
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                  )}
+                  {isSubmitting ? "Adding..." : "Add Record"}
                 </Button>
               </form>
             </CardContent>
@@ -251,49 +249,63 @@ const ServiceRecords = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {serviceRecords.map((record) => {
-                      const car = getCarById(record.carId);
-                      const service = getServiceById(record.serviceId);
-                      return (
-                        <TableRow
-                          key={record.id}
-                          className="border-border hover:bg-secondary/30"
-                        >
-                          <TableCell className="font-medium text-foreground">
-                            {car?.plateNumber || "Unknown"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {service?.name || "Unknown"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(record.serviceDate), "MMM dd, yyyy")}
-                          </TableCell>
-                          <TableCell className="text-right text-primary">
-                            {service?.price.toLocaleString()} RWF
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(record.id)}
-                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteClick(record.id)}
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        </TableCell>
+                      </TableRow>
+                    ) : serviceRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No service records yet
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      serviceRecords.map((record) => {
+                        const car = getCarById(record.carId);
+                        const service = getServiceById(record.serviceId);
+                        return (
+                          <TableRow
+                            key={record.id}
+                            className="border-border hover:bg-secondary/30"
+                          >
+                            <TableCell className="font-medium text-foreground">
+                              {car?.plateNumber || "Unknown"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {service?.name || "Unknown"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(record.serviceDate), "MMM dd, yyyy")}
+                            </TableCell>
+                            <TableCell className="text-right text-primary">
+                              {service?.price.toLocaleString()} RWF
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEdit(record.id)}
+                                  className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteClick(record.id)}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -368,14 +380,19 @@ const ServiceRecords = () => {
               variant="outline"
               onClick={() => setEditingRecord(null)}
               className="border-border"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               onClick={handleEditSubmit}
               className="gradient-primary text-primary-foreground"
+              disabled={isSubmitting}
             >
-              Save Changes
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -394,12 +411,16 @@ const ServiceRecords = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-border" disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
