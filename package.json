@@ -1,10 +1,11 @@
 {
   "scripts": {
-    "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "build:dev": "cd frontend && npm run build:dev",
+    "dev": "cd frontend && npm install && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "build:dev": "cd frontend && npm install && npm run build:dev",
     "preview": "cd frontend && npm run preview",
-    "test": "cd frontend && npm run test"
+    "test": "cd frontend && npm run test",
+    "postinstall": "cd frontend && npm install"
   },
   "dependencies": {
     "axios": "^1.13.2"
