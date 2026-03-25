@@ -1,4 +1,11 @@
 {
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "build:dev": "cd frontend && npm run build:dev",
+    "preview": "cd frontend && npm run preview",
+    "test": "cd frontend && npm run test"
+  },
   "dependencies": {
     "axios": "^1.13.2"
   }
