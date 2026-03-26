@@ -16,7 +16,14 @@ const recordRoutes = require('./routes/recordRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:5503',
+        'https://midnight-garage-pro.vercel.app'
+    ],
+    methods:"",
+    credentials: true
+}))
 app.use(express.json());
 
 // Routes
