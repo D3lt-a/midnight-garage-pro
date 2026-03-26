@@ -21,7 +21,7 @@ app.use(cors({
         'http://localhost:5503',
         'https://midnight-garage-pro.vercel.app'
     ],
-    methods:"",
+    methods:['GET','POST','PUT','DELETE'],
     credentials: true
 }))
 app.use(express.json());
